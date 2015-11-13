@@ -4,16 +4,89 @@
 import re
 import json
 f = file('web.conf','rU+')
-config_dict = {}
+f_add = file('web.conf','a')
+lines = f.readlines()
+f.close()
+config_dict = {} #定义字典将输入的字符串转换为字典
 domain_list=[]
+tage_list = []
+start = 0
+#从input中抽取参数
 domain_input = raw_input("please input your data：")
-test = json.loads('domain_input')
-print test
-#查询域名
-for i in f.readlines():
-    if re.match('backend',i):
-        domain_name = i.strip('\n').split(' ')[1]
-        domain_list.append(domain_name)
-    f.close()
-print domain_list
-#def del_set(domain_name):
+info_dict = json.loads(domain_input)
+d = info_dict['backend']
+s = info_dict['record']['server']
+w = info_dict['record']['weight']
+m = info_dict['record']['maxconn']
+#格式化参数
+format_bakend='backend {domain_name}'.format(domain_name=d)
+format_server='\tserver {server}  weight {weight} maxconn {maxconn}'.format(server=s,weight=w,maxconn=m)
+#域名查询信息
+def select_domain():
+    for i in f.readlines():
+        if re.match('backend',i):
+            domain_name = i.strip('\n').split(' ')[1]
+            domain_list.append(domain_name)
+for i in lines:
+    string = i.strip()
+    if re.search('^backend.*',string):
+        tage_list.append(lines.index(i,start))
+        start = lines.index(i,start)+1
+#查询
+def search_rage():
+    for i in lines:
+        string = i.strip()
+        if re.search('backend.*%s'%d,string):
+            tage=lines.index(i)
+    if tage in tage_list:
+        if tage_list[-1] == tage:
+            for data in lines[tage:]:
+                    print data
+        else:
+            next_tage = tage_list[tage_list.index(tage)+1]
+            for data in lines[tage:next_tage]:
+                print data
+    else:
+        pass
+#添加记录
+def add_rage():
+    for i in tage_list:
+        string = lines[i].strip()
+        if re.search('backend.*%s'%d,string):
+            lines.insert(i+1,format_server+'\n')
+            f.truncate(0)
+            f.writelines(lines)
+            f.close()
+            break
+    else:
+        f_add.write('\n'+format_bakend)
+        f_add.write('\n'+format_server)
+        f_add.close()
+
+#删除
+'''
+def del_rage():
+'''
+if __name__ == '__main__':
+    for i in tage_list:
+        if d in lines[i].split():
+            if tage_list.index(i) < len(tage_list)-1:
+                range_list = range(i,tage_list[tage_list.index(i)+1])
+                for info in range_list:
+                    if s in lines[info].strip().split():
+                        del lines[info]
+                    if len(range_list)==1:
+                        del lines[i]
+            else:
+                range_list = range(i,len(lines))
+                for info in range_list:
+                    if s in lines[info].strip().split():
+                        del lines[info]
+                    if len(range_list)==1:
+                        del lines[i]
+#print tage_list.index(i)  #域名backend所在位置
+#print len(tage_list)     #所有backend下标列表
+#如果相关backend不是在文件结尾通过则判断后一位backend位置 来取出中间所有
+f_w = file('web.conf','w')
+f_w.writelines(lines)
+f_w.close()
