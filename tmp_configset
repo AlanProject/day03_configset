@@ -77,6 +77,7 @@ if __name__ == '__main__':
                         del lines[info]
                     if len(range_list)==1:
                         del lines[i]
+                    print range_list
             else:
                 range_list = range(i,len(lines))
                 for info in range_list:
@@ -87,6 +88,5 @@ if __name__ == '__main__':
 #print tage_list.index(i)  #域名backend所在位置
 #print len(tage_list)     #所有backend下标列表
 #如果相关backend不是在文件结尾通过则判断后一位backend位置 来取出中间所有
-f_w = file('web.conf','w')
-f_w.writelines(lines)
-f_w.close()
+with file('web.conf','w') as f_w:
+    f_w.writelines(lines)
