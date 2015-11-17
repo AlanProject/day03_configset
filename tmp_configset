@@ -3,71 +3,45 @@
 #arg = {'bakend': 'www.oldboy.org','record':{'server': '100.1.7.9','weight': 20,'maxconn': 30}}
 import re
 import json
-f = file('web.conf','rU+')
-f_add = file('web.conf','a')
-lines = f.readlines()
-f.close()
-config_dict = {} #定义字典将输入的字符串转换为字典
-domain_list=[]
-tage_list = []
-start = 0
-#从input中抽取参数
-domain_input = raw_input("please input your data：")
-info_dict = json.loads(domain_input)
-d = info_dict['backend']
-s = info_dict['record']['server']
-w = info_dict['record']['weight']
-m = info_dict['record']['maxconn']
-#格式化参数
-format_bakend='backend {domain_name}'.format(domain_name=d)
-format_server='\tserver {server}  weight {weight} maxconn {maxconn}'.format(server=s,weight=w,maxconn=m)
-#域名查询信息
-def select_domain():
-    for i in f.readlines():
-        if re.match('backend',i):
-            domain_name = i.strip('\n').split(' ')[1]
-            domain_list.append(domain_name)
-for i in lines:
-    string = i.strip()
-    if re.search('^backend.*',string):
-        tage_list.append(lines.index(i,start))
-        start = lines.index(i,start)+1
+#生成backend列表
+def backend_list():
+    start = 0
+    for i in lines:
+        string = i.strip()
+        if re.search('^backend.*',string):
+            tage_list.append(lines.index(i,start))
+            start = lines.index(i,start)+1
 #查询
-def search_rage():
+def select_backend():
     for i in lines:
         string = i.strip()
         if re.search('backend.*%s'%d,string):
             tage=lines.index(i)
-    if tage in tage_list:
-        if tage_list[-1] == tage:
-            for data in lines[tage:]:
-                    print data
-        else:
-            next_tage = tage_list[tage_list.index(tage)+1]
-            for data in lines[tage:next_tage]:
-                print data
+            if tage in tage_list:
+                if tage_list[-1] == tage:
+                    for data in lines[tage:]:
+                        print data
+            else:
+                next_tage = tage_list[tage_list.index(tage)+1]
+                for data in lines[tage:next_tage]:
+                    print data.strip()
     else:
         pass
 #添加记录
-def add_rage():
+def add_backend():
     for i in tage_list:
         string = lines[i].strip()
         if re.search('backend.*%s'%d,string):
             lines.insert(i+1,format_server+'\n')
-            f.truncate(0)
-            f.writelines(lines)
-            f.close()
-            break
+            with file('web.conf','w') as f_w:
+                f_w.writelines(lines)
+                break
     else:
-        f_add.write('\n'+format_bakend)
-        f_add.write('\n'+format_server)
-        f_add.close()
-
+        with file('web.conf','a') as f_add:
+            f_add.write('\n'+format_bakend)
+            f_add.write('\n'+format_server)
 #删除
-'''
-def del_rage():
-'''
-if __name__ == '__main__':
+def del_backend():
     for i in tage_list:
         if d in lines[i].split():
             if tage_list.index(i) < len(tage_list)-1:
@@ -77,7 +51,6 @@ if __name__ == '__main__':
                         del lines[info]
                     if len(range_list)==1:
                         del lines[i]
-                    print range_list
             else:
                 range_list = range(i,len(lines))
                 for info in range_list:
@@ -85,8 +58,40 @@ if __name__ == '__main__':
                         del lines[info]
                     if len(range_list)==1:
                         del lines[i]
-#print tage_list.index(i)  #域名backend所在位置
-#print len(tage_list)     #所有backend下标列表
-#如果相关backend不是在文件结尾通过则判断后一位backend位置 来取出中间所有
-with file('web.conf','w') as f_w:
-    f_w.writelines(lines)
+    with file('web.conf','w') as f_w:
+        f_w.writelines(lines)
+if __name__ == '__main__':
+    with file('web.conf','rU+') as f:
+        lines = f.readlines()
+        for i in lines:
+            if i == '':
+                lines.remove('')
+    domain_list=[]
+    tage_list = []
+    #从配置文件中读取元素 并剔除空行
+    print '--------------------'
+    print '1.数据查询'.center(20)
+    print '2.添加数据'.center(20)
+    print '3.删除数据'.center(20)
+    print '--------------------'
+    try:
+        input_number = int(raw_input('请输入你要选择的操作:'))
+        if input_number == 1:
+            select_backend()
+        elif input_number == 2:
+            add_backend()
+        elif input_number == 3:
+            del_backend()
+        else:
+            print '请输入正确的选项 比如 1,2,3'
+        domain_input = raw_input("请输入您要查询的数据")
+        info_dict = json.loads(domain_input)
+        d = info_dict['backend']
+        s = info_dict['record']['server']
+        w = info_dict['record']['weight']
+        m = info_dict['record']['maxconn']
+        format_bakend='backend {domain_name}'.format(domain_name=d)
+        format_server='\tserver {server}  weight {weight} maxconn {maxconn}'.format(server=s,weight=w,maxconn=m)
+        select_backend()
+    except  ValueError:
+        print '请输入正确的数字类型'
