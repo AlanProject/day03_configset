@@ -3,6 +3,14 @@
 #arg = {'bakend': 'www.oldboy.org','record':{'server': '100.1.7.9','weight': 20,'maxconn': 30}}
 import re
 import json
+tage_list = []
+#从配置文件中读取元素 并剔除空行
+with file('web.conf','rU+') as f_read:
+    lines = f_read.readlines()
+    for i in lines:
+        if i == '':
+            lines.remove('')
+
 #生成backend列表
 def backend_list():
     start = 0
@@ -12,10 +20,10 @@ def backend_list():
             tage_list.append(lines.index(i,start))
             start = lines.index(i,start)+1
 #查询
-def select_backend():
+def select_backend(domain):
     for i in lines:
         string = i.strip()
-        if re.search('backend.*%s'%d,string):
+        if re.search('backend.*%s'%domain,string):
             tage=lines.index(i)
             if tage in tage_list:
                 if tage_list[-1] == tage:
@@ -28,22 +36,22 @@ def select_backend():
     else:
         pass
 #添加记录
-def add_backend():
+def add_backend(domain,backend,server):
     for i in tage_list:
         string = lines[i].strip()
-        if re.search('backend.*%s'%d,string):
-            lines.insert(i+1,format_server+'\n')
+        if re.search('backend.*%s'%domain,string):
+            lines.insert(i+1,server+'\n')
             with file('web.conf','w') as f_w:
                 f_w.writelines(lines)
                 break
     else:
         with file('web.conf','a') as f_add:
-            f_add.write('\n'+format_bakend)
-            f_add.write('\n'+format_server)
+            f_add.write('\n'+backend)
+            f_add.write('\n'+server)
 #删除
-def del_backend():
+def del_backend(domain):
     for i in tage_list:
-        if d in lines[i].split():
+        if domain in lines[i].split():
             if tage_list.index(i) < len(tage_list)-1:
                 range_list = range(i,tage_list[tage_list.index(i)+1])
                 for info in range_list:
@@ -61,14 +69,6 @@ def del_backend():
     with file('web.conf','w') as f_w:
         f_w.writelines(lines)
 if __name__ == '__main__':
-    with file('web.conf','rU+') as f:
-        lines = f.readlines()
-        for i in lines:
-            if i == '':
-                lines.remove('')
-    domain_list=[]
-    tage_list = []
-    #从配置文件中读取元素 并剔除空行
     print '--------------------'
     print '1.数据查询'.center(20)
     print '2.添加数据'.center(20)
@@ -84,6 +84,7 @@ if __name__ == '__main__':
             del_backend()
         else:
             print '请输入正确的选项 比如 1,2,3'
+
         domain_input = raw_input("请输入您要查询的数据")
         info_dict = json.loads(domain_input)
         d = info_dict['backend']
@@ -92,6 +93,6 @@ if __name__ == '__main__':
         m = info_dict['record']['maxconn']
         format_bakend='backend {domain_name}'.format(domain_name=d)
         format_server='\tserver {server}  weight {weight} maxconn {maxconn}'.format(server=s,weight=w,maxconn=m)
-        select_backend()
+
     except  ValueError:
         print '请输入正确的数字类型'
