@@ -10,7 +10,13 @@ with file('web.conf','rU+') as f_read:
     for i in lines:
         if i == '':
             lines.remove('')
-
+def input_dict(domain_input):
+        info_dict = json.loads(domain_input)
+        domain= info_dict['backend']
+        server = info_dict['record']['server']
+        weight = info_dict['record']['weight']
+        maxconn = info_dict['record']['maxconn']
+        return (domain,server,weight,maxconn)
 #生成backend列表
 def backend_list():
     start = 0
@@ -28,41 +34,43 @@ def select_backend(domain):
             if tage in tage_list:
                 if tage_list[-1] == tage:
                     for data in lines[tage:]:
-                        print data
-            else:
-                next_tage = tage_list[tage_list.index(tage)+1]
-                for data in lines[tage:next_tage]:
-                    print data.strip()
+                        print data.strip('\n')
+                else:
+                    next_tage = tage_list[tage_list.index(tage)+1]
+                    for data in lines[tage:next_tage]:
+                        print data.strip('\n')
     else:
         pass
 #添加记录
-def add_backend(domain,backend,server):
+def add_backend(tuple_data):
+    backend ='backend {domain_name}'.format(domain_name=tuple_data[0])
+    server ='\tserver {server}  weight {weight} maxconn {maxconn}'.format(server=tuple_data[1],weight=tuple_data[2],maxconn=tuple_data[3])
     for i in tage_list:
         string = lines[i].strip()
-        if re.search('backend.*%s'%domain,string):
+        if re.search('backend.*%s'%tuple_data[0],string):
             lines.insert(i+1,server+'\n')
             with file('web.conf','w') as f_w:
                 f_w.writelines(lines)
                 break
-    else:
-        with file('web.conf','a') as f_add:
-            f_add.write('\n'+backend)
-            f_add.write('\n'+server)
+        else:
+            with file('web.conf','a') as f_add:
+                f_add.write('\n'+backend)
+                f_add.write('\n'+server)
 #删除
-def del_backend(domain):
+def del_backend(tuple_data):
     for i in tage_list:
-        if domain in lines[i].split():
+        if tuple_data[0] in lines[i].split():
             if tage_list.index(i) < len(tage_list)-1:
                 range_list = range(i,tage_list[tage_list.index(i)+1])
                 for info in range_list:
-                    if s in lines[info].strip().split():
+                    if tuple_data[1] in lines[info].strip().split():
                         del lines[info]
                     if len(range_list)==1:
                         del lines[i]
             else:
                 range_list = range(i,len(lines))
                 for info in range_list:
-                    if s in lines[info].strip().split():
+                    if tuple_data[1] in lines[info].strip().split():
                         del lines[info]
                     if len(range_list)==1:
                         del lines[i]
@@ -74,25 +82,23 @@ if __name__ == '__main__':
     print '2.添加数据'.center(20)
     print '3.删除数据'.center(20)
     print '--------------------'
+    backend_list()
     try:
-        input_number = int(raw_input('请输入你要选择的操作:'))
+        input_number = int(raw_input('请输入你要选择的操作 >>>'))
         if input_number == 1:
-            select_backend()
+            input_data = raw_input('请输入你要查询的域名 例如：www.Alan.com:')
+            select_backend(input_data)
         elif input_number == 2:
-            add_backend()
+            print '格式为：{"backend": "www.oldboy.org","record":{"server": "172.16.189.101","weight": 20,"maxconn": 30}}'
+            input_data = raw_input('请输入你要添加的数据:')
+            tuple_data = input_dict(input_data)
+            add_backend(tuple_data)
         elif input_number == 3:
-            del_backend()
+            print '格式为：{"backend": "www.oldboy.org","record":{"server": "172.16.189.101","weight": 20,"maxconn": 30}}'
+            input_data = raw_input('请输入你要删除的数据:')
+            tuple_data = input_dict(input_data)
+            del_backend(tuple_data)
         else:
             print '请输入正确的选项 比如 1,2,3'
-
-        domain_input = raw_input("请输入您要查询的数据")
-        info_dict = json.loads(domain_input)
-        d = info_dict['backend']
-        s = info_dict['record']['server']
-        w = info_dict['record']['weight']
-        m = info_dict['record']['maxconn']
-        format_bakend='backend {domain_name}'.format(domain_name=d)
-        format_server='\tserver {server}  weight {weight} maxconn {maxconn}'.format(server=s,weight=w,maxconn=m)
-
     except  ValueError:
         print '请输入正确的数字类型'
