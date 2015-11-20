@@ -1,0 +1,70 @@
+#-*- coding:utf-8 -*-
+#/usr/bin/env python
+import os
+import json
+arg = '{"backend": "www.oldboy.org","record":{"server": "100.1.7.145","weight":20,"maxconn":30}}'
+#查找backend记录
+def select_backend(domain):
+    #从文件获取数据
+    with open('web.conf','rU')as file_read:
+        #设置初始flage状态为Flase
+        flag = False
+        #设置backend列表存储取出的backend元素
+        backend_list = []
+        for i in file_read:
+            #将文件中的每一行进行剔除空格和换行
+            # 然后把要查找的backend和该行进行对比，如果一致则将flag设置为True 并跳出当前循环
+            if i.strip() == ('backend %s')%domain:
+                flag = True
+                continue
+            #判断flag是否为True是则表示已经找到该backend，如果下一行记录为backend记录则退出循环
+            if flag and i.strip().startswith('backend'):
+                break
+            #判断是否找到要查询的backend 如果找到则下一行加入backend_list 列表
+            if flag:
+                backend_list.append(i.strip())
+        #函数执行完毕返回backend_list列表
+        return backend_list
+#添加backend记录
+def add_backend(arg):
+    flag = False
+    tage = False
+
+    #调用json将的数据输入格式化为字典
+    backend_dict = json.loads(arg)
+    #格式化完成后字符串应该是这样的
+    '''
+    {u'record': {u'maxconn': 30, u'weight': 20, u'server': u'100.1.7.9'}, u'backend': u'www.oldboy.org'}
+    '''
+    backend_list = select_backend(backend_dict.get('backend'))
+    domain = backend_dict.get('backend')
+    record_list = backend_dict.get('record')
+    record = 'server {server}  weight {weight} maxconn {maxconn}'.format(server = record_list.get('server'),weight = record_list.get('weight'),maxconn = record_list.get('maxconn'))
+    with open('web.conf','r') as file_read,open('web.bak','w') as file_write:
+        if not backend_list:
+            flag = True
+        if flag:
+            for i in file_read:
+                file_write.write(i)
+            file_write.write('\nbackend %s'%domain)
+            file_write.write('\n'+' '*8+record)
+        else:
+            #判断是否存在该记录如果存在则将tage置为True如果不存在则添加记录到back_list列表
+            if record not in backend_list:
+                backend_list.append(record)
+            for i in file_read:
+                if i.strip() == 'backend %s'%domain:
+                    file_write.write(i)
+                    tage = True
+                if tage:
+                    file_write.writelines(backend_list)
+                    break
+                if not tage:
+                    file_write.write(i)
+
+#删除backend记录
+def del_backend(arg):
+    pass
+
+if __name__ == '__main__':
+    add_backend(arg)
