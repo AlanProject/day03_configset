@@ -1,8 +1,10 @@
 #-*- coding:utf-8 -*-
 #/usr/bin/env python
+#-*- coding:utf-8 -*-
+#/usr/bin/env python
 import os
 import json
-arg = '{"backend": "www.oldboy.org","record":{"server": "100.1.7.145","weight":20,"maxconn":30}}'
+arg = '{"backend": "www.alan.com","record":{"server":"100.1.7.9 100.1.7.9","weight":20,"maxconn":3000}}'
 #查找backend记录
 def select_backend(domain):
     #从文件获取数据
@@ -29,42 +31,101 @@ def select_backend(domain):
 def add_backend(arg):
     flag = False
     tage = False
-
     #调用json将的数据输入格式化为字典
     backend_dict = json.loads(arg)
     #格式化完成后字符串应该是这样的
     '''
-    {u'record': {u'maxconn': 30, u'weight': 20, u'server': u'100.1.7.9'}, u'backend': u'www.oldboy.org'}
+    {u'record': {u'maxconn': 30, u'weight': 20, u'server': u'100.1.7.9'},
+    u'backend': u'www.oldboy.org'}
     '''
     backend_list = select_backend(backend_dict.get('backend'))
     domain = backend_dict.get('backend')
     record_list = backend_dict.get('record')
-    record = 'server {server}  weight {weight} maxconn {maxconn}'.format(server = record_list.get('server'),weight = record_list.get('weight'),maxconn = record_list.get('maxconn'))
+    record = 'server {server} weight {weight} maxconn {maxconn}'.format(server = record_list.get('server'),weight = record_list.get('weight'),maxconn = record_list.get('maxconn'))
     with open('web.conf','r') as file_read,open('web.bak','w') as file_write:
         if not backend_list:
-            flag = True
-        if flag:
             for i in file_read:
                 file_write.write(i)
             file_write.write('\nbackend %s'%domain)
             file_write.write('\n'+' '*8+record)
         else:
             #判断是否存在该记录如果存在则将tage置为True如果不存在则添加记录到back_list列表
-            if record not in backend_list:
+            if not record in backend_list:
                 backend_list.append(record)
             for i in file_read:
                 if i.strip() == 'backend %s'%domain:
                     file_write.write(i)
-                    tage = True
-                if tage:
-                    file_write.writelines(backend_list)
-                    break
-                if not tage:
+                    flag = True
+                    continue
+                if flag:
+                    if not tage:
+                        #写配置文件的要添加的部分
+                        for s in backend_list:
+                            file_write.write(' '*8+s+'\n')
+                        tage = True
+                    else:
+                        #写配置文件的后半段
+                        file_write.write(i)
+                else:
+                    #写配置文件的前半段
                     file_write.write(i)
 
 #删除backend记录
 def del_backend(arg):
-    pass
-
+    flag = False
+    tage = False
+    len_write = True
+    #调用json将的数据输入格式化为字典
+    backend_dict = json.loads(arg)
+    #格式化完成后字符串应该是这样的
+    '''
+    {u'record': {u'maxconn': 30, u'weight': 20, u'server': u'100.1.7.9'},
+    u'backend': u'www.oldboy.org'}
+    '''
+    #获取backend列表
+    backend_list = select_backend(backend_dict.get('backend'))
+    #backend获取域名信息
+    domain = backend_dict.get('backend')
+    #获取record信息
+    record_list = backend_dict.get('record')
+    record = 'server {server} weight {weight} maxconn {maxconn}'.format(server = record_list.get('server'),weight = record_list.get('weight'),maxconn = record_list.get('maxconn'))
+    #打开web.conf 并创建一个web.bak文件 将修改过后的内容先存入web.bak
+    with open('web.conf','r') as file_read,open('web.bak','w') as file_write:
+        #如果backend_list为空，则表明没有此backend记录直接将旧文件写入新文件即可
+        if not backend_list:
+            for i in file_read:
+                file_write.write(i)
+        else:
+            #判断是否存在要查询的record记录 如果存在则删除
+            if record in backend_list:
+                backend_list.remove(record)
+            for i in file_read:
+                #查找匹配的backend
+                if i.strip() == 'backend %s'%domain:
+                    #如果backend_list为空，则表明此backend下没有record记录 不将backend写入新文件
+                    if backend_list:
+                        file_write.write(i)
+                    #找到匹配的backend将flag设置为True
+                    flag = True
+                    continue
+                if flag:
+                    if not tage and len_write:
+                        #写配置文件的要添加的部分
+                        for s in backend_list:
+                            file_write.write(' '*8+s+'\n')
+                        #要修改的数据写入一次之后将状态设置为True 以后不再写
+                        len_write = False
+                    #如果flag为True则表明已经找到匹配的backend
+                    #如果当前行再次匹配backend开头，则表明找到第二个backend可以进行后半段写入了
+                    if flag and i.strip().startswith('backend'):
+                        #找到匹配的backend后的第一个backend标签则将tage设置为True
+                        tage = True
+                    #如果tage为true则表明可以进行后半段读写
+                    if tage:
+                        #写配置文件的后半段
+                        file_write.write(i)
+                else:
+                    #写配置文件的前半段
+                    file_write.write(i)
 if __name__ == '__main__':
-    add_backend(arg)
+    del_backend(arg)
