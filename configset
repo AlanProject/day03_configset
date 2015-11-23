@@ -1,7 +1,5 @@
 #-*- coding:utf-8 -*-
 #/usr/bin/env python
-#-*- coding:utf-8 -*-
-#/usr/bin/env python
 import os
 import json
 arg = '{"backend": "www.Alan.com","record":{"server":"172.16.189.10","weight":20,"maxconn":3000}}'
